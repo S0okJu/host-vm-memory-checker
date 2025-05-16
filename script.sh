@@ -54,26 +54,21 @@ check_memory_usage() {
     fi
 }
 
-# Check unused memory
-check_unused() {
-    local unused_gb=$1
-    if (($(echo "$unused_gb <= 0.5" | bc -l))); then
-        echo -e "${RED}${unused_gb}Gi${NC}"
-    elif (($(echo "$unused_gb > 0.5" | bc -l))) && (($(echo "$unused_gb <= 1" | bc -l))); then
-        echo -e "${ORANGE}${unused_gb}Gi${NC}"
-    else
-        echo -e "${unused_gb}Gi"
-    fi
-}
-
 check_usable() {
     local usable_gb=$1
-    if (($(echo "$usable_gb <= 1" | bc -l))); then
-        echo -e "${RED}${usable_gb}Gi${NC}"
-    elif (($(echo "$usable_gb <= 2" | bc -l))); then
-        echo -e "${ORANGE}${usable_gb}Gi${NC}"
+    local alloc_gb=$2
+
+    # 퍼센트 계산 (소수점 포함)
+    local percent
+    percent=$(echo "scale=2; $usable_gb / $alloc_gb * 100" | bc -l)
+
+    # 색상 조건 분기 (기준은 %)
+    if (($(echo "$percent <= 20" | bc -l))); then
+        echo -e "${RED}$(printf '%.2f' "$usable_gb")Gi (${percent}%)${NC}"
+    elif (($(echo "$percent <= 50" | bc -l))); then
+        echo -e "${ORANGE}$(printf '%.2f' "$usable_gb")Gi (${percent}%)${NC}"
     else
-        echo -e "${usable_gb}Gi"
+        echo -e "$(printf '%.2f' "$usable_gb")Gi (${percent}%)"
     fi
 }
 
@@ -97,8 +92,8 @@ vm_memory_stat() {
     # 헤더와 데이터를 함께 버퍼링 후 column 처리
     {
         # 헤더
-        printf "%-25s|%-25s|%-15s|%-12s|%-12s|%-12s\n" \
-            "VM Name" "RSS/Alloc(%)" "Available" "Usable" "Cache" "Unused"
+        printf "%-25s|%-25s|%-15s|%-20s|%-12s|%-12s\n" \
+            "VM Name" "RSS/Alloc(%)" "Available" "Usable(%)" "Cache" "Unused"
 
         # 데이터
         for vm in $(virsh list --name); do
@@ -122,18 +117,17 @@ vm_memory_stat() {
             percent=$(to_vm_mem_usage_percent $current_gb $rss_gb)
 
             usable_gb=$(to_gb $usable)
-            colored_usable=$(check_usable $usable_gb)
+            colored_usable=$(check_usable $usable_gb $current_gb)
 
             unused_gb=$(to_gb $unused)
-            checked_unused=$(check_unused $unused_gb)
 
-            printf "%-25s|%-25s|%-15s|%-12s|%-12s|%-12s\n" \
+            printf "%-25s|%-25s|%-15s|%-20s|%-12s|%-12s\n" \
                 "$vm" \
                 "${rss_gb}/${current_gb}Gi ($percent)" \
                 "$(to_gb $available)Gi" \
                 "$colored_usable" \
                 "$(to_gb $cache)Gi" \
-                "$checked_unused"
+                "${unused_gb}"
         done
     } | column -t -s "|"
 }
