@@ -60,15 +60,15 @@ check_usable() {
 
     # 퍼센트 계산 (소수점 포함)
     local percent
-    percent=$(echo "scale=2; $usable_gb / $alloc_gb * 100" | bc -l)
+    percent=$(echo "scale=4; $usable_gb / $alloc_gb * 100" | bc -l)
 
     # 색상 조건 분기 (기준은 %)
     if (($(echo "$percent <= 20" | bc -l))); then
-        echo -e "${RED}$(printf '%.2f' "$usable_gb")Gi (${percent}%)${NC}"
+        echo -e "${RED}$(printf '%.2f' "$usable_gb")Gi ($(printf "%.2f" "$percent")%)${NC}"
     elif (($(echo "$percent <= 50" | bc -l))); then
-        echo -e "${ORANGE}$(printf '%.2f' "$usable_gb")Gi (${percent}%)${NC}"
+        echo -e "${ORANGE}$(printf '%.2f' "$usable_gb")Gi ($(printf "%.2f" "$percent")%)${NC}"
     else
-        echo -e "$(printf '%.2f' "$usable_gb")Gi (${percent}%)"
+        echo -e "$(printf '%.2f' "$usable_gb")Gi ($(printf "%.2f" "$percent")%)"
     fi
 }
 
