@@ -127,7 +127,7 @@ vm_memory_stat() {
                 "$(to_gb $available)Gi" \
                 "$colored_usable" \
                 "$(to_gb $cache)Gi" \
-                "${unused_gb}"
+                "${unused_gb}Gi"
         done
     } | column -t -s "|"
 }
